@@ -50,3 +50,21 @@ the underscore. In this example, they are `gpuadder.py` and `_gpuadder.so`. Thes
 
 Note: the python module gets its name from the %module line in `swig.i` (line 3). That name (in this case `gpuadder`) needs to match the
 name in the `py_modules` line of setup.py (line 112) so that the python file `gpuadder.py` and the shared object file `_gpuadder.so` match up.
+
+
+# setuptools monkey patching and setup.py
+
+setuptools does not know anything about NVCC by default, and doesn't really support having multiple compilers that are on the same OS
+(it can deal with microsoft vs. linux, but not with nvcc vs gcc). So we need some tricks.
+
+To implement the "special hack" in step 2 above, we create a new UnixCCompiler for NVCC and explicitly set the executable for its linker
+to be `echo`, which makes sure it never executes the link step. This means that NVCC is only going to create a `.o` file. Next, we need to
+make sure that gcc linker thats going to merge the swig_wrapper with the manager into the final `.so` file can find the NVCC created `.o`.
+This is done in the hacky-est way possible, using the extra `glob_extra_link_args` which explicitly adds the path to `manager.o` to the link
+line.
+
+`custom_build_ext` is the hook into customizing setuptools. It is the class that dispatches the compilation of the extension to the compilers.
+By customizing it, we make sure that the NVCC compiler is called for any extension having .cu source files, and gcc is used otherwise.
+
+The actual implementation of the `glob_extra_link_args` is also done here.
+
