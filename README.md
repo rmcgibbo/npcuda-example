@@ -10,6 +10,7 @@ This C++ class is wrapped via swig -- effectively exporting this class into pyth
 
 Requirements
 - python 2.7
+ * NOTE: You should really be using EPD python (http://www.enthought.com/products/epd.php)
 - python setuptools, numpy
 - swig. Tested with version 1.3.40
 - nvcc. I'm using version 4.2
