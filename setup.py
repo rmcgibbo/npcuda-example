@@ -45,13 +45,20 @@ class NVCC(UnixCCompiler):
             print >> sys.stderr, 'Could not find nvcc, the nvidia cuda compiler'
             sys.exit(1)
         UnixCCompiler.__init__(self)
-        
+
+
+# this code will get compiled up to a .o file by nvcc. the final .o file(s) that
+# it makes will be just one for each input source file. Note that we turned off
+# the nvcc linker so that we don't make any .so files.
 nvcc_compiled = Extension('this_name_is_irrelevant',
                           sources=['src/gpuadder.cu'],
                           extra_compile_args=['-arch=sm_20', '--ptxas-options=-v', '-c', '--compiler-options', "'-fPIC'"],
+                          # we need to include src as an input directory so that the header files and device_kernel.cu
+                          # can be found
                           include_dirs=['/usr/local/cuda/include', 'src'],
                           )
 
+# the swig wrapper for gpuaddr.cu gets compiled, and then linked to gpuaddr.o
 swig_wrapper = MyExtension('_gpuadder',
                          sources=['src/swig_wrap.cpp'],
                          library_dirs=['/usr/local/cuda/lib64'],
@@ -60,6 +67,9 @@ swig_wrapper = MyExtension('_gpuadder',
                          # against the kernels -o file
                          glob_extra_link_args=['build/*/*/gpuadder.o'])
 
+
+# this cusom class lets us build one extension with nvcc and one extension with regular gcc
+# basically, it just tries to detect a .cu file ending to trigger the nvcc compiler
 class custom_build_ext(build_ext):
     def build_extensions(self):
         # we're going to need to switch between compilers, so lets save both
@@ -93,13 +103,19 @@ class custom_build_ext(build_ext):
         build_ext.build_extension(self, *args, **kwargs)
 
 setup(name='gpuadder',
+      # random metadata. there's more you can supploy
       author='Robert McGibbon',
       version='0.1',
-      #packages = ['gpuadder'],
-      #package_dir = {'gpuadder': 'src'},
+
+      # this is necessary so that the swigged python file gets picked up
       py_modules=['gpuadder'],
       package_dir={'': 'src'},
+
       ext_modules=[nvcc_compiled, swig_wrapper],
+
+      # inject out custom trigger
       cmdclass={'build_ext': custom_build_ext},
+
+      # since the package has c code, the egg cannot be zipped
       zip_safe=False,
       )
