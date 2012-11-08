@@ -17,7 +17,6 @@ GPUAdder::GPUAdder (int* array_host_, int length_) {
   array_host = array_host_;
   length = length_;
   int size = length * sizeof(int);
-
   cudaError_t err = cudaMalloc((void**) &array_device, size);
   assert(err == 0);
   err = cudaMemcpy(array_device, array_host, size, cudaMemcpyHostToDevice);
