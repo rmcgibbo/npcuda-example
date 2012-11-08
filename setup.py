@@ -6,7 +6,6 @@ from distutils.command.build_ext import build_ext
 import subprocess
 from subprocess import CalledProcessError
 import glob
-import IPython as ip
 
 subprocess.check_call('swig -python -c++ -o src/swig_wrap.cpp src/swig.i', shell=True)
 
