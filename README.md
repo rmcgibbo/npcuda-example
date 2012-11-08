@@ -6,7 +6,7 @@ The idea is to use this coda as an example or template from which to build your 
 The extension is a single C++ class which manages the GPU memory and provides methods to call operations on the GPU data.
 This C++ class is wrapped via swig -- effectively exporting this class into python.
 
-# Instalation
+# instalation
 
 Requirements
 - python 2.7
@@ -16,7 +16,7 @@ Requirements
 
 `python setup.py install`
 
-# The Files
+# files
 
 1. `gpuadder.cu`, `gpuadder.hh`: Implementation and interface file for the central C++ class. The function of this
 class is to manage the GPU memory and execution lifecycle, and generally act as a "window" to expose the GPU side kernels.
