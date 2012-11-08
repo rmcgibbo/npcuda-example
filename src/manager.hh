@@ -5,7 +5,7 @@ class GPUAdder {
   int* array_host;
   // length of the array (number of elements)
   int length;
-  
+
 public:
   /* By using the swig default names INPLACE_ARRAY1, DIM1 in the header
      file (these aren't the names in the implementation file), we're giving
@@ -30,4 +30,6 @@ public:
 
   //gets results back from the gpu, putting them in the supplied memory location
   void retreive_to (int* INPLACE_ARRAY1, int DIM1);
+
+
 };
