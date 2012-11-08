@@ -113,7 +113,7 @@ setup(name='gpuadder',
 
       ext_modules=[nvcc_compiled, swig_wrapper],
 
-      # inject out custom trigger
+      # inject our custom trigger
       cmdclass={'build_ext': custom_build_ext},
 
       # since the package has c code, the egg cannot be zipped
