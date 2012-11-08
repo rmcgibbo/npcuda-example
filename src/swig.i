@@ -1,3 +1,5 @@
+/* -*- C -*-  (not really, but good for syntax highlighting) */
+
 %module gpuadder
 /* This is the swig "interface file" which gives instructions to swig
    on how to turn the class declared in manager.hh into the python module
