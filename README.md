@@ -17,3 +17,14 @@ Requirements
 `python setup.py install`
 
 # The Files
+
+1. `gpuadder.cu`, `gpuadder.hh`: Implementation and interface file for the central C++ class. The function of this
+class is to manage the GPU memory and execution lifecycle, and generally act as a "window" to expose the GPU side kernels.
+The key methods are a constructor which takes as input an array and copies it over to the GPU, and a `retreive()` method
+which copies back the data from the GPU to the CPU. Other methods on the C++ class can trigger CUDA kernels to perform
+in place operations on the GPU memory. This trivial example contains only the code to increment all of the elements in an
+array by one.
+
+2. `device_kernel.cu`
+
+3. `swig.i`
