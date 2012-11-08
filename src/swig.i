@@ -11,7 +11,7 @@
 
 %{
     #define SWIG_FILE_WITH_INIT
-    #include "gpuadder.hh"    
+    #include "manager.hh"    
 %}
 
 %include "numpy.i"
@@ -29,4 +29,4 @@
    type of translation would be necessary.
    http://www.scipy.org/Cookbook/SWIG_NumPy_examples */
 
-%include "gpuadder.hh"
+%include "manager.hh"

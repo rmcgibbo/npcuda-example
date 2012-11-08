@@ -51,7 +51,7 @@ class NVCC(UnixCCompiler):
 # it makes will be just one for each input source file. Note that we turned off
 # the nvcc linker so that we don't make any .so files.
 nvcc_compiled = Extension('this_name_is_irrelevant',
-                          sources=['src/gpuadder.cu'],
+                          sources=['src/manager.cu'],
                           extra_compile_args=['-arch=sm_20', '--ptxas-options=-v', '-c', '--compiler-options', "'-fPIC'"],
                           # we need to include src as an input directory so that the header files and device_kernel.cu
                           # can be found
@@ -65,7 +65,8 @@ swig_wrapper = MyExtension('_gpuadder',
                          libraries=['cudart'],
                          # extra bit of magic so that we link this
                          # against the kernels -o file
-                         glob_extra_link_args=['build/*/*/gpuadder.o'])
+                         # this picks up the build/temp.linux/src/manager.cu
+                         glob_extra_link_args=['build/*/*/manager.o'])
 
 
 # this cusom class lets us build one extension with nvcc and one extension with regular gcc
