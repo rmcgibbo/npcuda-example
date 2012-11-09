@@ -6,6 +6,8 @@ The idea is to use this coda as an example or template from which to build your 
 The extension is a single C++ class which manages the GPU memory and provides methods to call operations on the GPU data.
 This C++ class is wrapped via swig -- effectively exporting this class into python.
 
+To use this code in your own work, refer to the LICENSE file.
+
 # instalation
 
 Requirements
