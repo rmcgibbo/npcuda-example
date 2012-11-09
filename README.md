@@ -20,15 +20,17 @@ uses CUDA compiled with setuptools/distutils just like your standard C exension 
 
 ## installation
 
-Requirements
+Requirements:
 - python 2.7
 - python setuptools, numpy
 - swig. Tested with version 1.3.40
 - nvcc. I'm using version 4.2
 
-- NOTE: You should REALLY be using EPD python (http://www.enthought.com/products/epd.php). It will come with everything.
+### NOTE: You should REALLY be using EPD python (http://www.enthought.com/products/epd.php). It will come with everything.
 
-Then to install, just run `$ python setup.py install`. To see if everything is working, run `$ python test.py` or `$ nosetests`. Silence is golden!
+Then to install, just run `$ python setup.py install`. To see if everything is working, run `$ python test.py` or `$ nosetests`
+
+Silence is golden!
 
 ## files
 
