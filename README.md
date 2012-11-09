@@ -14,6 +14,10 @@ them be dynamically compiled, or anything like that.
 Instead, the goal is to demonstrate some of the biolerplate and tricks needed to make a CPython extension module that
 uses CUDA compiled with setuptools/distutils just like your standard C exension modules.
 
+## authors
+- Robert McGibbon
+- Yutong Zhao
+
 ## installation
 
 Requirements
