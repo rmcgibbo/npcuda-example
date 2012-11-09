@@ -8,7 +8,15 @@ This C++ class is wrapped via swig -- effectively exporting this class into pyth
 
 To use this code in your own work, refer to the LICENSE file.
 
-# instalation
+# difference from PyCUDA
+
+The point of this project is not to enable you to access the CUDA API in python, to write cuda code in strings and have
+them be dynamically compiled, or anything like that.
+
+Instead, the goal is to demonstrate some of the biolerplate and tricks needed to make a CPython extension module that
+uses CUDA compiled with setuptools/distutils just like your standard C exension modules.
+
+# installation
 
 Requirements
 - python 2.7
