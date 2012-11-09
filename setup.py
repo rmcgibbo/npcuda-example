@@ -9,12 +9,13 @@ import glob
 
 subprocess.check_call('swig -python -c++ -o src/swig_wrap.cpp src/swig.i', shell=True)
 
-# make the clean command always run first
-#sys.argv.insert(1, 'clean')
-#sys.argv.insert(2, 'build')
+# Obtain the numpy include directory.  This logic works across numpy versions.
+try:
+    numpy_include = numpy.get_include()
+except AttributeError:
+    numpy_include = numpy.get_numpy_include()
 
 # python distutils doesn't have NVCC by default. This is a total hack.
-# what we're going to 
 
 class MyExtension(Extension):
     """subclass extension to add the kwarg 'glob_extra_link_args'
@@ -62,6 +63,7 @@ swig_wrapper = MyExtension('_gpuadder',
                          sources=['src/swig_wrap.cpp'],
                          library_dirs=['/usr/local/cuda/lib64'],
                          libraries=['cudart'],
+                         include_dirs = [numpy_include],
                          # extra bit of magic so that we link this
                          # against the kernels -o file
                          # this picks up the build/temp.linux/src/manager.cu
