@@ -1,7 +1,8 @@
 import sys, os
 from os.path import join as pjoin
 from setuptools import setup
-from distutils.unixccompiler import UnixCCompiler
+from distutils.unixccompiler import UnixCCompiler, _darwin_compiler_fixup
+from distutils.errors import DistutilsExecError, CompileError, LibError, LinkError
 from distutils.extension import Extension
 from distutils.command.build_ext import build_ext
 import subprocess
@@ -17,6 +18,7 @@ def find_in_path(name, path):
          return os.path.abspath(binpath)
    return None
 
+
 def locate_cuda():
    # first check if the CUDAHOME env variable is in use
    if 'CUDAHOME' in os.environ:
@@ -29,7 +31,7 @@ def locate_cuda():
          raise EnvironmentError('The nvcc binary could not be '
              'located in your $PATH. Either add it to your path, or set $CUDAHOME')
       home = os.path.dirname(os.path.dirname(nvcc))
-
+   
    cudaconfig = {'home':home, 'nvcc':nvcc,
                  'include': pjoin(home, 'include'),
                  'lib64': pjoin(home, 'lib64')}
@@ -48,86 +50,58 @@ except AttributeError:
     numpy_include = numpy.get_numpy_include()
 
 
-class MyExtension(Extension):
-    """subclass extension to add the kwarg 'glob_extra_link_args'
-    which will get evaluated by glob right before the extension gets compiled
-    and let the swig shared object get linked against the cuda kernel
-    """
-    def __init__(self, *args, **kwargs):
-        self.glob_extra_link_args = kwargs.pop('glob_extra_link_args', [])
-        Extension.__init__(self, *args, **kwargs)
+# inject deep into distutils to customize how the dispatch to gcc/nvcc works
+# if you subclass UnixCCompiler, it's not trivial to get your subclass injected
+# in, and still have the right customizations (i.e.
+# distutils.sysconfig.customize_compiler) run on it. So instead of going the OO
+# route, I have this
 
-class NVCC(UnixCCompiler):
-    src_extensions = ['.cu']
-    executables = {'preprocessor' : None,
-                   'compiler'     : [CUDA['nvcc']],
-                   'compiler_so'  : [CUDA['nvcc']],
-                   'compiler_cxx' : [CUDA['nvcc']],
-                   # TURN OFF NVCC LINKING -- we're going to link with gcc instead
-                   'linker_so'    : ["echo"],
-                   'linker_exe'   : None,
-                   'archiver'     : None,
-                   'ranlib'       : None,
-                   }
+# note, it's kindof like a wierd functional subclassing going on.
+def customize_compiler(self):
+   # the compiler can processes .cu
+   self.src_extensions.append('.cu')
 
-# this code will get compiled up to a .o file by nvcc. the final .o file(s) that
-# it makes will be just one for each input source file. Note that we turned off
-# the nvcc linker so that we don't make any .so files.
-nvcc_compiled = Extension('this_name_is_irrelevant',
-                          sources=['src/manager.cu'],
-                          extra_compile_args=['-arch=sm_20', '--ptxas-options=-v', '-c', '--compiler-options', "'-fPIC'"],
-                          # we need to include src as an input directory so that the header files and device_kernel.cu
-                          # can be found
-                          include_dirs=[CUDA['include'], 'src'],
-                          )
+   # save references to the default compiler_so and _comple methods
+   default_compiler_so = self.compiler_so
+   super = self._compile
 
-# the swig wrapper for gpuaddr.cu gets compiled, and then linked to gpuaddr.o
-swig_wrapper = MyExtension('_gpuadder',
-                         sources=['src/swig_wrap.cpp'],
-                         library_dirs=[CUDA['lib64']],
-                         libraries=['cudart'],
-                         include_dirs = [numpy_include],
-                         # extra bit of magic so that we link this
-                         # against the kernels -o file
-                         # this picks up the build/temp.linux/src/manager.cu
-                         glob_extra_link_args=['build/*/*/manager.o'])
+   # now redefine the _compile method. This gets executed for each
+   # object but distutils doesn't have the ability to change compilers
+   # based on source extension: we add it.
+   def _compile(obj, src, ext, cc_args, extra_postargs, pp_opts):
+      if os.path.splitext(src)[1] == '.cu':
+         # use the cuda for .cu files
+         self.set_executable('compiler_so', CUDA['nvcc'])
+         # use only a subset of the extra_postargs, which are 1-1 translated
+         # from the extra_compile_args in the Extension class
+         postargs = extra_postargs['nvcc']
+      else:
+         postargs = extra_postargs['gcc']
+
+      super(obj, src, ext, cc_args, postargs, pp_opts)
+      # reset the default compiler_so, which we might have changed for cuda
+      self.compiler_so = default_compiler_so
+
+   # inject our redefined _compile method into the class
+   self._compile = _compile
 
 
-# this cusom class lets us build one extension with nvcc and one extension with regular gcc
-# basically, it just tries to detect a .cu file ending to trigger the nvcc compiler
+ext = Extension('_gpuadder',
+                sources=['src/swig_wrap.cpp', 'src/manager.cu'],
+                library_dirs=[CUDA['lib64']],
+                libraries=['cudart'],
+                extra_compile_args={'gcc': [],
+                                    'nvcc': ['-arch=sm_20', '--ptxas-options=-v', '-c', '--compiler-options', "'-fPIC'"]},
+                include_dirs = [numpy_include, CUDA['include'], 'src'])
+
+
+# run the customize_compiler
 class custom_build_ext(build_ext):
-    def build_extensions(self):
-        # we're going to need to switch between compilers, so lets save both
-        self.default_compiler = self.compiler
-        self.nvcc = NVCC()
-        build_ext.build_extensions(self)
+   def build_extensions(self):
+      customize_compiler(self.compiler)
+      build_ext.build_extensions(self)
 
-    def build_extension(self, *args, **kwargs):
-        extension = args[0]
-        # switch the compiler based on which thing we're compiling
-        # if any of the sources end with .cu, use nvcc
-        if any([e.endswith('.cu') for e in extension.sources]):
-            # note that we've DISABLED the linking (by setting the linker to be "echo")
-            # in the nvcc compiler
-            self.compiler = self.nvcc
-        else:
-            self.compiler = self.default_compiler
-
-        # evaluate the glob pattern and add it to the link line
-        # note, this suceeding with a glob pattern like build/temp*/gpurmsd/RMSD.o
-        # depends on the fact that this extension is built after the extension
-        # which creates that .o file
-        if hasattr(extension, 'glob_extra_link_args'):
-            for pattern in extension.glob_extra_link_args:
-                unglobbed = glob.glob(pattern)
-                if len(unglobbed) == 0:
-                    raise RuntimeError("glob_extra_link_args didn't match any files")
-                self.compiler.linker_so += unglobbed
-        
-        # call superclass
-        build_ext.build_extension(self, *args, **kwargs)
-
-
+# check for swig
 if find_in_path('swig', os.environ['PATH']):
    subprocess.check_call('swig -python -c++ -o src/swig_wrap.cpp src/swig.i', shell=True)
 else:
@@ -142,11 +116,10 @@ setup(name='gpuadder',
       py_modules=['gpuadder'],
       package_dir={'': 'src'},
 
-      ext_modules=[nvcc_compiled, swig_wrapper],
+      ext_modules = [ext],
 
       # inject our custom trigger
       cmdclass={'build_ext': custom_build_ext},
 
       # since the package has c code, the egg cannot be zipped
-      zip_safe=False,
-      )
+      zip_safe=False)
