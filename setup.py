@@ -90,6 +90,7 @@ ext = Extension('_gpuadder',
                 sources=['src/swig_wrap.cpp', 'src/manager.cu'],
                 library_dirs=[CUDA['lib64']],
                 libraries=['cudart'],
+                runtime_library_dirs=[CUDA['lib64']],
                 extra_compile_args={'gcc': [],
                                     'nvcc': ['-arch=sm_20', '--ptxas-options=-v', '-c', '--compiler-options', "'-fPIC'"]},
                 include_dirs = [numpy_include, CUDA['include'], 'src'])
