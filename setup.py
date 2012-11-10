@@ -11,6 +11,7 @@ import glob
 import numpy
 
 def find_in_path(name, path):
+   "Find a file in a search path"
    #adapted fom http://code.activestate.com/recipes/52224-find-a-file-given-a-search-path/
    for dir in path.split(os.pathsep):
       binpath = pjoin(dir, name)
@@ -20,6 +21,15 @@ def find_in_path(name, path):
 
 
 def locate_cuda():
+   """Locate the CUDA environment on the system
+   
+   Returns a dict with keys 'home', 'nvcc', 'include', and 'lib64'
+   and values giving the absolute path to each directory.
+
+   Starts by looking for the CUDAHOME env variable. If not found, everything
+   is based on finding 'nvcc' in the PATH.
+   """
+
    # first check if the CUDAHOME env variable is in use
    if 'CUDAHOME' in os.environ:
       home = os.environ['CUDAHOME']
@@ -40,8 +50,8 @@ def locate_cuda():
          raise EnvironmentError('The CUDA %s path could not be located in %s' % (k, v))
 
    return cudaconfig
-
 CUDA = locate_cuda()
+
 
 # Obtain the numpy include directory.  This logic works across numpy versions.
 try:
@@ -50,14 +60,32 @@ except AttributeError:
     numpy_include = numpy.get_numpy_include()
 
 
+ext = Extension('_gpuadder',
+                sources=['src/swig_wrap.cpp', 'src/manager.cu'],
+                library_dirs=[CUDA['lib64']],
+                libraries=['cudart'],
+                runtime_library_dirs=[CUDA['lib64']],
+                # this syntax is specific to this build system
+                # we're only going to use certain compiler args with nvcc and not with gcc
+                # the implementation of this trick is in customize_compiler() below
+                extra_compile_args={'gcc': [],
+                                    'nvcc': ['-arch=sm_20', '--ptxas-options=-v', '-c', '--compiler-options', "'-fPIC'"]},
+                include_dirs = [numpy_include, CUDA['include'], 'src'])
+
+
+# check for swig
+if find_in_path('swig', os.environ['PATH']):
+   subprocess.check_call('swig -python -c++ -o src/swig_wrap.cpp src/swig.i', shell=True)
+else:
+   raise EnvironmentError('the swig executable was not found in your PATH')
+
+
 # inject deep into distutils to customize how the dispatch to gcc/nvcc works
 # if you subclass UnixCCompiler, it's not trivial to get your subclass injected
 # in, and still have the right customizations (i.e.
 # distutils.sysconfig.customize_compiler) run on it. So instead of going the OO
-# route, I have this
-
-# note, it's kindof like a wierd functional subclassing going on.
-def customize_compiler(self):
+# route, I have this. Note, it's kindof like a wierd functional subclassing going on.
+def customize_compiler_for_nvcc(self):
    # the compiler can processes .cu
    self.src_extensions.append('.cu')
 
@@ -86,27 +114,11 @@ def customize_compiler(self):
    self._compile = _compile
 
 
-ext = Extension('_gpuadder',
-                sources=['src/swig_wrap.cpp', 'src/manager.cu'],
-                library_dirs=[CUDA['lib64']],
-                libraries=['cudart'],
-                runtime_library_dirs=[CUDA['lib64']],
-                extra_compile_args={'gcc': [],
-                                    'nvcc': ['-arch=sm_20', '--ptxas-options=-v', '-c', '--compiler-options', "'-fPIC'"]},
-                include_dirs = [numpy_include, CUDA['include'], 'src'])
-
-
 # run the customize_compiler
 class custom_build_ext(build_ext):
    def build_extensions(self):
-      customize_compiler(self.compiler)
+      customize_compiler_for_nvcc(self.compiler)
       build_ext.build_extensions(self)
-
-# check for swig
-if find_in_path('swig', os.environ['PATH']):
-   subprocess.check_call('swig -python -c++ -o src/swig_wrap.cpp src/swig.i', shell=True)
-else:
-   raise EnvironmentError('the swig executable was not found in your PATH')
 
 setup(name='gpuadder',
       # random metadata. there's more you can supploy
