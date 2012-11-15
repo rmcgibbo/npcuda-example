@@ -5,6 +5,7 @@ This is an example of a simple Python C++ extension which uses CUDA and is compi
 The extension is a single C++ class which manages the GPU memory and provides methods to call operations on the GPU
 data. This C++ class is wrapped via *swig* or *cython* -- effectively exporting this class into python land.
 
+To use this code in your own work, refer to the LICENSE file.
 
 ## swig vs cython
 
@@ -22,9 +23,6 @@ directly. Take a look at `wrapper.pyx`. It looks like python, but it gets transl
 a shared object file which you import from python (look at the `test.py` file)
 
 Cython is the way to go.
-
-
-To use this code in your own work, refer to the LICENSE file.
 
 ## difference from PyCUDA
 
