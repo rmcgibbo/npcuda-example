@@ -2,7 +2,27 @@
 
 This is an example of a simple Python C++ extension which uses CUDA and is compiled via nvcc. The idea is to use this coda as an example or template from which to build your own CUDA-accelerated Python extensions.
 
-The extension is a single C++ class which manages the GPU memory and provides methods to call operations on the GPU data. This C++ class is wrapped via swig or cython -- effectively exporting this class into python land.
+The extension is a single C++ class which manages the GPU memory and provides methods to call operations on the GPU
+data. This C++ class is wrapped via *swig* or *cython* -- effectively exporting this class into python land.
+
+
+## swig vs cython
+
+### swig
+Swig is a widely used code generator for exposing C and C++ libraries in high level dynamically typed languages.
+In principle, it involves minimal code rewriting. You just have to write swig interface files that instruct swig
+on how to do the translation.
+
+In practice, swig and numpy don't work together that well. The numpy interface relies on a bunch of magical macros
+that are extremely difficult to debug.
+
+### !!cython!!
+Cython is sweet. It's basically python, with optional static type declarations and the ability to call c functions
+directly. Take a look at `wrapper.pyx`. It looks like python, but it gets translated into C, and then compiled into
+a shared object file which you import from python (look at the `test.py` file)
+
+Cython is the way to go.
+
 
 To use this code in your own work, refer to the LICENSE file.
 
