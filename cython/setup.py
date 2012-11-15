@@ -2,7 +2,7 @@ import  os
 from os.path import join as pjoin
 from setuptools import setup
 from distutils.extension import Extension
-from distutils.command.build_ext import build_ext
+from Cython.Distutils import build_ext
 import subprocess
 import numpy
 
@@ -56,10 +56,11 @@ except AttributeError:
     numpy_include = numpy.get_numpy_include()
 
 
-ext = Extension('_gpuadder',
-                sources=['src/swig_wrap.cpp', 'src/manager.cu'],
+ext = Extension('gpuadder',
+                sources=['src/manager.cu', 'wrapper.pyx'],
                 library_dirs=[CUDA['lib64']],
                 libraries=['cudart'],
+                language='c++',
                 runtime_library_dirs=[CUDA['lib64']],
                 # this syntax is specific to this build system
                 # we're only going to use certain compiler args with nvcc and not with gcc
@@ -67,13 +68,6 @@ ext = Extension('_gpuadder',
                 extra_compile_args={'gcc': [],
                                     'nvcc': ['-arch=sm_20', '--ptxas-options=-v', '-c', '--compiler-options', "'-fPIC'"]},
                 include_dirs = [numpy_include, CUDA['include'], 'src'])
-
-
-# check for swig
-if find_in_path('swig', os.environ['PATH']):
-    subprocess.check_call('swig -python -c++ -o src/swig_wrap.cpp src/swig.i', shell=True)
-else:
-    raise EnvironmentError('the swig executable was not found in your PATH')
 
 
 
@@ -125,10 +119,6 @@ setup(name='gpuadder',
       # random metadata. there's more you can supploy
       author='Robert McGibbon',
       version='0.1',
-
-      # this is necessary so that the swigged python file gets picked up
-      py_modules=['gpuadder'],
-      package_dir={'': 'src'},
 
       ext_modules = [ext],
 
