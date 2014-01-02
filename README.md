@@ -47,8 +47,6 @@ Requirements:
 - swig for the swig wrapping method. I've tested with version 1.3.40
 - cython for the cython wrapping method. I've tested with version 0.16
 
-### NOTE: You should REALLY be using EPD python (http://www.enthought.com/products/epd.php). It will come with everything.
-
 
 To install, `cd` into your directory of choice -- either `swig` or `cython`. Then, just run `$ python setup.py install`. To see if everything is working, run `$ nosetests`
 
