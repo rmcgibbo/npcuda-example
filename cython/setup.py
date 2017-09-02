@@ -1,3 +1,4 @@
+from future.utils import iteritems
 import  os
 from os.path import join as pjoin
 from setuptools import setup
@@ -5,6 +6,7 @@ from distutils.extension import Extension
 from Cython.Distutils import build_ext
 import subprocess
 import numpy
+
 
 def find_in_path(name, path):
     "Find a file in a search path"
@@ -41,46 +43,23 @@ def locate_cuda():
     cudaconfig = {'home':home, 'nvcc':nvcc,
                   'include': pjoin(home, 'include'),
                   'lib64': pjoin(home, 'lib64')}
-    for k, v in cudaconfig.iteritems():
+    for k, v in iteritems(cudaconfig):
         if not os.path.exists(v):
             raise EnvironmentError('The CUDA %s path could not be located in %s' % (k, v))
 
     return cudaconfig
-CUDA = locate_cuda()
-
-
-# Obtain the numpy include directory.  This logic works across numpy versions.
-try:
-    numpy_include = numpy.get_include()
-except AttributeError:
-    numpy_include = numpy.get_numpy_include()
-
-
-ext = Extension('gpuadder',
-                sources=['src/manager.cu', 'wrapper.pyx'],
-                library_dirs=[CUDA['lib64']],
-                libraries=['cudart'],
-                language='c++',
-                runtime_library_dirs=[CUDA['lib64']],
-                # this syntax is specific to this build system
-                # we're only going to use certain compiler args with nvcc and not with gcc
-                # the implementation of this trick is in customize_compiler() below
-                extra_compile_args={'gcc': [],
-                                    'nvcc': ['-arch=sm_20', '--ptxas-options=-v', '-c', '--compiler-options', "'-fPIC'"]},
-                include_dirs = [numpy_include, CUDA['include'], 'src'])
-
 
 
 def customize_compiler_for_nvcc(self):
     """inject deep into distutils to customize how the dispatch
     to gcc/nvcc works.
-    
+
     If you subclass UnixCCompiler, it's not trivial to get your subclass
     injected in, and still have the right customizations (i.e.
     distutils.sysconfig.customize_compiler) run on it. So instead of going
     the OO route, I have this. Note, it's kindof like a wierd functional
     subclassing going on."""
-    
+
     # tell the compiler it can processes .cu
     self.src_extensions.append('.cu')
 
@@ -114,6 +93,32 @@ class custom_build_ext(build_ext):
     def build_extensions(self):
         customize_compiler_for_nvcc(self.compiler)
         build_ext.build_extensions(self)
+
+
+
+CUDA = locate_cuda()
+
+# Obtain the numpy include directory.  This logic works across numpy versions.
+try:
+    numpy_include = numpy.get_include()
+except AttributeError:
+    numpy_include = numpy.get_numpy_include()
+
+
+ext = Extension('gpuadder',
+                sources=['src/manager.cu', 'wrapper.pyx'],
+                library_dirs=[CUDA['lib64']],
+                libraries=['cudart'],
+                language='c++',
+                runtime_library_dirs=[CUDA['lib64']],
+                # this syntax is specific to this build system
+                # we're only going to use certain compiler args with nvcc and not with gcc
+                # the implementation of this trick is in customize_compiler() below
+                extra_compile_args={'gcc': [],
+                                    'nvcc': ['-arch=sm_30', '--ptxas-options=-v', '-c', '--compiler-options', "'-fPIC'"]},
+                include_dirs = [numpy_include, CUDA['include'], 'src'])
+
+
 
 setup(name='gpuadder',
       # random metadata. there's more you can supploy
