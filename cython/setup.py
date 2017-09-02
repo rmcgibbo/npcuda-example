@@ -1,3 +1,4 @@
+from future.utils import iteritems
 import  os
 from os.path import join as pjoin
 from setuptools import setup
@@ -41,7 +42,7 @@ def locate_cuda():
     cudaconfig = {'home':home, 'nvcc':nvcc,
                   'include': pjoin(home, 'include'),
                   'lib64': pjoin(home, 'lib64')}
-    for k, v in cudaconfig.iteritems():
+    for k, v in iteritems(cudaconfig):
         if not os.path.exists(v):
             raise EnvironmentError('The CUDA %s path could not be located in %s' % (k, v))
 
