@@ -9,7 +9,7 @@ to install
 
 to test:
 
-`$ nosetests`
+`$ pytest test.py`
 
 you need a relatively recent version of cython (>=0.16).
 
