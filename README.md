@@ -37,7 +37,7 @@ uses CUDA compiled with setuptools/distutils just like your standard C exension 
 ## installation
 
 Requirements:
-- python 2.7
+- python
 - python setuptools, numpy
 - nvcc. I'm using version 4.2
 - nose (for testing)
